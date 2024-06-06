@@ -1,0 +1,13 @@
+.idea/*
+*test*
+*temp*
+*__pycache__*
+build/*
+dist/*
+img
+out/*
+*.dat
+*.json
+*.log
+*.spec
+log.txt

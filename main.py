@@ -5,6 +5,7 @@ Main module
 import datetime as dt
 import json
 import os
+from time import sleep
 import pyodbc
 import func
 import query
@@ -50,6 +51,7 @@ def main():
 
         # Main loop
         while True:
+            next_start = dt.datetime.now().astimezone() + dt.timedelta(hours=1)
             with open(cyclefile) as f:
                 last = f.read()
             if len(last) == 0 or func.convert_dt_str(last).date() < func.get_now().date():
@@ -70,6 +72,9 @@ def main():
                             func.plog(logfile, f"Wrote results to `{outfile}` at {func.get_now_str()}")
                 with open(cyclefile, 'w') as f:
                     f.write(func.get_now_str())
+            sleep_interval = (next_start - dt.datetime.now().astimezone()).seconds
+            print(f'Next cycle will begin at {next_start}')
+            sleep(sleep_interval)
     except KeyboardInterrupt:
         func.plog(logfile, f"Script terminated via keyboard interrupt at {func.get_now_str()}")
     except (KeyError, OSError, json.JSONDecodeError) as e:

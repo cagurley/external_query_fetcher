@@ -4,8 +4,8 @@ Query module
 
 QUERIES = {
     "test_scores_to_ps": """
-        declare @start datetime = convert(datetime, dateadd(d, -1, convert(date, getdate())));
         declare @end datetime = convert(datetime, convert(date, getdate()));
+        declare @start datetime = dateadd(d, -1, @end);
         with cte as (
           select
             t.*,
@@ -77,93 +77,42 @@ QUERIES = {
           t.[updated]
         from (
           select
-            [emplid],
-            [record],
-            [id],
+            t.[emplid],
+            t.[record],
+            t.[id],
             (
-              case
-              when [type] = 'AP' then 'APS'
-              when [type] = 'duolingo160' then 'DUO'
-              when [type] = 'SATR' then 'SATI'
-              else [type]
+              case t.[type]
+              when 'AP' then 'APS'
+              when 'duolingo160' then 'DUO'
+              when 'SATR' then 'SATI'
+              else t.[type]
               end
             ) as [test],
             (
-              case
-              when [type] = 'ACT' then 'COMP'
-              when [type] = 'AP' then (
-                case
-                when [subtype] = 'ART' then 'ARH'
-                when [subtype] = 'SAR2' then 'AS2D'
-                when [subtype] = 'SAR3' then 'AS3D'
-                when [subtype] = 'SARD' then 'ASD'
-                when [subtype] = 'BIO' then 'BY'
-                when [subtype] = 'CALA' then 'MAB'
-                when [subtype] = 'CALB' then 'MBC'
-                when [subtype] = 'CALBAB' then 'MABS'
-                when [subtype] = 'CHM' then 'CH'
-                when [subtype] = 'CHI' then 'CN'
-                when [subtype] = 'CGO' then 'GPC'
-                when [subtype] = 'CSA' then 'CSA'
-                when [subtype] = 'CSB' then 'CSAB'
-                when [subtype] = '32' then 'CSP'
-                when [subtype] = 'ELA' then 'ENGC'
-                when [subtype] = 'ELI' then 'ELC'
-                when [subtype] = 'ESC' then 'ENVSC'
-                when [subtype] = 'EUR' then 'EH'
-                when [subtype] = 'FRE' then 'FRA'
-                when [subtype] = 'GER' then 'GM'
-                when [subtype] = 'HGE' then 'HGEO'
-                when [subtype] = 'ITL' then 'IT'
-                when [subtype] = 'JPN' then 'JP'
-                when [subtype] = 'LAT' then 'LTV'
-                when [subtype] = 'MAC' then 'EMA'
-                when [subtype] = 'MIC' then 'EMI'
-                when [subtype] = 'MUS' then 'MST'
-                when [subtype] = 'MUSA' then 'MSTA'
-                when [subtype] = 'MUSNA' then 'MSTNA'
-                when [subtype] = '83' then 'PH1'
-                when [subtype] = '84' then 'PH2'
-                when [subtype] = 'PHB' then 'PHB'
-                when [subtype] = 'MAG' then 'PHCE'
-                when [subtype] = 'MEC' then 'PHCM'
-                when [subtype] = 'PSY' then 'PY'
-                when [subtype] = '23' then 'RES'
-                when [subtype] = '22' then 'SEM'
-                when [subtype] = 'SLA' then 'SPL'
-                when [subtype] = 'SLI' then 'SPLL'
-                when [subtype] = 'STA' then 'STATS'
-                when [subtype] = 'USG' then 'GPU'
-                when [subtype] = 'USH' then 'UH'
-                when [subtype] = 'WHI' then 'WH'
-                else ''
-                end
-              )
-              when [type] = 'duolingo160' then 'OVRLL'
-              when [type] = 'IB' then (
-                select top(1) ilt.[export]
-                from [lookup.test] as ilt
-                where t.[type] = ilt.[id]
-                and t.[subtype] = ilt.[subtype]
-              )
-              when [type] = 'IELTS' then 'TOTAL'
-              when [type] = 'SATR' then 'TOTAL'
-              when [type] = 'TOEFL' then (
-                case [subtype]
+              case t.[type]
+              when 'ACT' then 'COMP'
+              when 'AP' then lt.[export]
+              when 'duolingo160' then 'OVRLL'
+              when 'IB' then lt.[export]
+              when 'IELTS' then 'TOTAL'
+              when 'SATR' then 'TOTAL'
+              when 'TOEFL' then (
+                case t.[subtype]
                 when 'ESS' then 'TOTE'
                 else 'TOTAL'
                 end
               )
-              else [subtype]
+              else t.[subtype]
               end
             ) as [component],
-            [date],
-            (select top(1) [value] from dbo.getFieldExportTable([id], 'ug_ls_data_source')) as [ls_data_source],
-            [total] as [score],
-            [created],
-            [updated],
-            [source]
+            t.[date],
+            (select top(1) [value] from dbo.getFieldExportTable(t.[id], 'ug_ls_data_source')) as [ls_data_source],
+            t.[total] as [score],
+            t.[created],
+            t.[updated],
+            t.[source]
           from [cte] as t
+          left outer join [lookup.test] as lt on t.[type] = lt.[id] and t.[subtype] = lt.[subtype]
           where [type] in ('ACCU', 'ACT', 'AP', 'duolingo160', 'IB', 'IELTS', 'KYOTE', 'SATII', 'SATR', 'SEMP', 'TOEFL')
           and [confirmed] = 1
           union
